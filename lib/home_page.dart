@@ -66,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const DrawingPage()),
+                      MaterialPageRoute(builder: (context) => const DrawingPage(parentPath: null)),
                     );
                   },
                   child: const Text('New Painting'),

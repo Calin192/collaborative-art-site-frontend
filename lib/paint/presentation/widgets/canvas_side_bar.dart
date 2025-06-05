@@ -35,6 +35,7 @@ class CanvasSideBar extends StatefulWidget {
   final ValueNotifier<ui.Image?> backgroundImage;
   final UndoRedoStack undoRedoStack;
   final ValueNotifier<bool> showGrid;
+  final String? parentPath;
 
   const CanvasSideBar({
     Key? key,
@@ -50,6 +51,7 @@ class CanvasSideBar extends StatefulWidget {
     required this.backgroundImage,
     required this.undoRedoStack,
     required this.showGrid,
+    required this.parentPath
   }) : super(key: key);
 
   @override
@@ -318,7 +320,7 @@ class _CanvasSideBarState extends State<CanvasSideBar> {
                         child: const Text('Export'),
                         onPressed: () async {
                           Uint8List? pngBytes = await getBytes();
-                          if (pngBytes != null) await uploadImage(pngBytes);
+                          if (pngBytes != null) await uploadImage(pngBytes,widget.parentPath ?? '');
 
                         },
                       ),

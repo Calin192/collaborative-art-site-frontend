@@ -15,7 +15,9 @@ import '../widgets/drawing_canvas.dart';
 import '../widgets/hot_key_listener.dart';
 
 class DrawingPage extends StatefulWidget {
-  const DrawingPage({super.key});
+  final String? parentPath;  // <-- Adăugat parametru opțional
+
+  const DrawingPage({super.key, required this.parentPath});
 
   @override
   State<DrawingPage> createState() => _DrawingPageState();
@@ -39,9 +41,15 @@ class _DrawingPageState extends State<DrawingPage>
   late final UndoRedoStack undoRedoStack;
   final ValueNotifier<bool> showGrid = ValueNotifier(false);
 
+  String? parentPath;  // variabilă pentru path-ul părintelui
+
   @override
   void initState() {
     super.initState();
+
+    // Preia parentPath din widget (poate fi null)
+    parentPath = widget.parentPath;
+
     animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -56,17 +64,15 @@ class _DrawingPageState extends State<DrawingPage>
     //_loadDefaultBackgroundImage();
   }
 
-  /*Future<void> _loadDefaultBackgroundImage() async {
-    final ByteData data = await rootBundle.load('C:/a.Programming/Licenta/Proiect/Frontend/assets/screenshots/img_1.png');
-    final ui.Codec codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
-    final ui.FrameInfo frame = await codec.getNextFrame();
-    backgroundImage.value = frame.image;
-  }*/
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kCanvasColor,
+      appBar: AppBar(
+        title: Text(parentPath == null
+            ? 'New Root Painting'
+            : 'New Painting from $parentPath'),
+      ),
       body: HotkeyListener(
         onRedo: undoRedoStack.redo,
         onUndo: undoRedoStack.undo,
@@ -123,6 +129,7 @@ class _DrawingPageState extends State<DrawingPage>
                   backgroundImage: backgroundImage,
                   undoRedoStack: undoRedoStack,
                   showGrid: showGrid,
+                  parentPath: parentPath,  // Transmite parentPath către CanvasSideBar
                 ),
               ),
             ),
@@ -162,11 +169,11 @@ class _CustomAppBar extends StatelessWidget {
             ),
             RichText(
               text: TextSpan(
-                style: TextStyle(
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 19,
                 ),
-                children: [
+                children: const [
                   TextSpan(
                     text: 'Paint',
                     style: TextStyle(
@@ -184,7 +191,6 @@ class _CustomAppBar extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox.shrink(),
           ],
         ),
