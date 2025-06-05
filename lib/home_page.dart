@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_drawing_board/paint/presentation/pages/drawing_page.dart';
+import 'package:flutter_drawing_board/subgallery/getImages.dart';
+import 'package:flutter_drawing_board/subgallery/subtree_gallery_page.dart';
 import 'package:http/http.dart' as http;
 
 class HomeScreen extends StatefulWidget {
@@ -103,7 +105,23 @@ class _HomeScreenState extends State<HomeScreen> {
                         textAlign: TextAlign.center,
                       ),
                     ),
-                    child: Image.memory(imageBytes, fit: BoxFit.cover),
+                    child: GestureDetector(
+                      onTap: () async {
+                        final selectedPath = image['filename'];
+                        final subtreeImages = await fetchImagesFromRoot(selectedPath);
+                        if (subtreeImages.isNotEmpty) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => SubtreeGalleryPage(rootPath: selectedPath),
+                            ),
+                          );
+                        }
+                      },
+
+                      child: Image.memory(imageBytes, fit: BoxFit.contain),
+                    ),
+
                   );
                 },
               ),
