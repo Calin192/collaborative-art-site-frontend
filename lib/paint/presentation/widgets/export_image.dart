@@ -5,7 +5,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../../main.dart';
 
-Future<void> uploadImage(Uint8List imageBytes,String parentPath ) async {
+Future<void> uploadImage(Uint8List imageBytes,String parentPath,String name ) async {
   // Creează cererea HTTP pentru upload
   var request = http.MultipartRequest(
     'POST',
@@ -16,8 +16,12 @@ Future<void> uploadImage(Uint8List imageBytes,String parentPath ) async {
   request.files.add(http.MultipartFile.fromBytes(
     'image',
     imageBytes,
-    filename: 'image.png',
+    filename: '$name.png',
   ));
+
+  request.fields['parentPath'] = parentPath;
+
+  print("in upload image $parentPath");
 
   var response = await request.send();
 

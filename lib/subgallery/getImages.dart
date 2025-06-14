@@ -8,6 +8,7 @@ Future<Map<String, String>> fetchImagesFromRoot(String rootPath) async {
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       Map<String, dynamic> jsonResponse = json.decode(response.body);
+
       return jsonResponse.map((key, value) => MapEntry(key, value.toString()));
     } else {
       throw Exception('Failed to load images for root: $rootPath');

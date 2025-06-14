@@ -1,7 +1,12 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter_drawing_board/subgallery/findImagePathInTree.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_drawing_board/subgallery/saveBytes.dart';
+import 'package:path_provider/path_provider.dart';
+
+import '../paint/presentation/pages/drawing_page.dart';
 
 class TreeNode {
   final String path;
@@ -32,6 +37,9 @@ class _SubtreeGalleryPageState extends State<SubtreeGalleryPage> {
   Map<String, String> images = {};
   TreeNode? rootTree;
   bool isLoading = true;
+  late Map<String, dynamic> treeJson;
+
+  late String treeUrl;
 
   @override
   void initState() {
@@ -41,19 +49,19 @@ class _SubtreeGalleryPageState extends State<SubtreeGalleryPage> {
 
   Future<void> _loadImagesAndTree() async {
     final String imagesUrl = 'http://localhost:8080/getImagesFromRoot?rootPath=${widget.rootPath}';
-    final String treeUrl = 'http://localhost:8080/getTreeStructure?rootPath=${widget.rootPath}';
+    this.treeUrl = 'http://localhost:8080/getTreeStructure?rootPath=${widget.rootPath}';
 
     try {
       final imagesResponse = await http.get(Uri.parse(imagesUrl));
-      final treeResponse = await http.get(Uri.parse(treeUrl));
+      final treeResponse = await http.get(Uri.parse(this.treeUrl));
 
       if (imagesResponse.statusCode == 200 && treeResponse.statusCode == 200) {
         final Map<String, dynamic> imagesJson = json.decode(imagesResponse.body);
         final Map<String, String> imagesStringMap = imagesJson.map((key, value) => MapEntry(key, value.toString()));
 
-        final Map<String, dynamic> treeJson = json.decode(treeResponse.body);
+        this.treeJson = json.decode(treeResponse.body);
         final TreeNode tree = TreeNode.fromJson(treeJson);
-
+        //print("Tree loaded: ${treeJson}");
         setState(() {
           images = imagesStringMap;
           rootTree = tree;
@@ -80,7 +88,7 @@ class _SubtreeGalleryPageState extends State<SubtreeGalleryPage> {
           ? const Center(child: Text('No tree found.'))
           : SingleChildScrollView(
         padding: const EdgeInsets.all(10),
-        child: _TreeNodeWidget(node: rootTree!, images: images),
+        child: _TreeNodeWidget(node: rootTree!, images: images, treeJson: this.treeJson),
       ),
     );
   }
@@ -89,8 +97,9 @@ class _SubtreeGalleryPageState extends State<SubtreeGalleryPage> {
 class _TreeNodeWidget extends StatefulWidget {
   final TreeNode node;
   final Map<String, String> images;
+  final Map<String, dynamic> treeJson;
 
-  const _TreeNodeWidget({Key? key, required this.node, required this.images}) : super(key: key);
+  const _TreeNodeWidget({Key? key, required this.node, required this.images, required this.treeJson}) : super(key: key);
 
   @override
   State<_TreeNodeWidget> createState() => _TreeNodeWidgetState();
@@ -100,11 +109,14 @@ class _TreeNodeWidgetState extends State<_TreeNodeWidget> {
   final GlobalKey parentKey = GlobalKey();
   final List<GlobalKey> childrenKeys = [];
 
+
   @override
   void initState() {
     super.initState();
     childrenKeys.addAll(List.generate(widget.node.children.length, (_) => GlobalKey()));
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +132,7 @@ class _TreeNodeWidgetState extends State<_TreeNodeWidget> {
 
     final childrenWidgets = <Widget>[];
     for (int i = 0; i < widget.node.children.length; i++) {
-      childrenWidgets.add(_TreeNodeWidget(node: widget.node.children[i], images: widget.images, key: childrenKeys[i]));
+      childrenWidgets.add(_TreeNodeWidget(node: widget.node.children[i], images: widget.images, key: childrenKeys[i], treeJson: widget.treeJson));
     }
 
     return Container(
@@ -129,18 +141,59 @@ class _TreeNodeWidgetState extends State<_TreeNodeWidget> {
         return Stack(
           clipBehavior: Clip.none,
           children: [
+            // 🔥 Linia trebuie să fie dedesubt și să ignore gesturile
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: _LinesPainter(
+                    parentKey: parentKey,
+                    childrenKeys: childrenKeys,
+                  ),
+                ),
+              ),
+            ),
+
+            // 🔥 Widgetul tău interactiv cu GestureDetector
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Nodul părinte cu key
-                Row(
-                  key: parentKey,
-                  children: [
-                    if (bytes != null)
-                      Image.memory(bytes, width: 80, height: 80, fit: BoxFit.contain),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(widget.node.path, style: const TextStyle(fontWeight: FontWeight.bold))),
-                  ],
+                GestureDetector(
+                  onTap: () async {
+                    String imageName = widget.node.path.split('/').last;
+                    String? resolvedPath = await findImagePathInTree(widget.treeJson, imageName);
+                    print("Resolved path:---------------------- $resolvedPath");
+                    if (resolvedPath != null && bytes != null) {
+                      // Salvează temporar imaginea în directorul temporar
+                      final tempFilePath = await saveImageTemporarily(bytes, imageName);
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DrawingPage(tempPath: tempFilePath, parentPath: resolvedPath), // trimiți calea temporară
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Could not resolve image path or image data is null')),
+                      );
+                    }
+                  },
+
+                  child: Container(
+                    key: parentKey,
+                    color: Colors.red.withOpacity(0.3),
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        if (bytes != null)
+                          Image.memory(bytes, width: 80, height: 80, fit: BoxFit.contain),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(widget.node.path, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 if (childrenWidgets.isNotEmpty)
@@ -152,16 +205,6 @@ class _TreeNodeWidgetState extends State<_TreeNodeWidget> {
                     ),
                   ),
               ],
-            ),
-
-            // Desenăm liniile după ce calculăm pozițiile
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _LinesPainter(
-                  parentKey: parentKey,
-                  childrenKeys: childrenKeys,
-                ),
-              ),
             ),
           ],
         );

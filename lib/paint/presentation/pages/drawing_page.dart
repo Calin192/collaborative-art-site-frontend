@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -14,10 +15,15 @@ import '../widgets/canvas_side_bar.dart';
 import '../widgets/drawing_canvas.dart';
 import '../widgets/hot_key_listener.dart';
 
-class DrawingPage extends StatefulWidget {
-  final String? parentPath;  // <-- Adăugat parametru opțional
 
-  const DrawingPage({super.key, required this.parentPath});
+
+
+
+class DrawingPage extends StatefulWidget {
+  final String? parentPath;
+  final String? tempPath;
+
+  const DrawingPage({super.key, required this.parentPath, required this.tempPath});
 
   @override
   State<DrawingPage> createState() => _DrawingPageState();
@@ -41,14 +47,15 @@ class _DrawingPageState extends State<DrawingPage>
   late final UndoRedoStack undoRedoStack;
   final ValueNotifier<bool> showGrid = ValueNotifier(false);
 
-  String? parentPath;  // variabilă pentru path-ul părintelui
+  String? parentPath;  // variabila pentru path-ul parintelui
+  String? tempPath;  // variabila pentru path-ul parintelui
 
   @override
   void initState() {
     super.initState();
-
-    // Preia parentPath din widget (poate fi null)
+    print("$parentPath");
     parentPath = widget.parentPath;
+    tempPath = widget.tempPath;
 
     animationController = AnimationController(
       vsync: this,
@@ -60,10 +67,31 @@ class _DrawingPageState extends State<DrawingPage>
       strokesNotifier: allStrokes,
     );
 
-    // Load a default background image
-    //_loadDefaultBackgroundImage();
+
+
+    // Încarcă imaginea de fundal dacă e specificat un parentPath
+
+    if (tempPath != null && tempPath!.isNotEmpty) {
+      _loadBackgroundFromParentPath(tempPath!);
+    }
   }
 
+  Future<void> _loadBackgroundFromParentPath(String path) async {
+    try {
+      final file = File(path);
+      if (!await file.exists()) {
+        debugPrint('File does not exist at $path');
+        return;
+      }
+
+      final bytes = await file.readAsBytes();
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      backgroundImage.value = frame.image;
+    } catch (e) {
+      debugPrint('Failed to load background image from $path: $e');
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -141,6 +169,8 @@ class _DrawingPageState extends State<DrawingPage>
   }
 }
 
+
+
 class _CustomAppBar extends StatelessWidget {
   final AnimationController animationController;
 
@@ -167,7 +197,7 @@ class _CustomAppBar extends StatelessWidget {
               },
               icon: const Icon(Icons.menu),
             ),
-            RichText(
+            /*RichText(
               text: TextSpan(
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
@@ -190,7 +220,7 @@ class _CustomAppBar extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
+            ),*/
             const SizedBox.shrink(),
           ],
         ),

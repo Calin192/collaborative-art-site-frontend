@@ -60,6 +60,7 @@ class CanvasSideBar extends StatefulWidget {
 
 class _CanvasSideBarState extends State<CanvasSideBar> {
   UndoRedoStack get undoRedoStack => widget.undoRedoStack;
+  final TextEditingController filenameController = TextEditingController();
 
   final scrollController = ScrollController();
 
@@ -312,6 +313,15 @@ class _CanvasSideBarState extends State<CanvasSideBar> {
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const Divider(),
+                TextField(
+                  controller: filenameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Filename',
+                    hintText: 'Enter filename',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const Divider(),
                 Row(
                   children: [
                     SizedBox(
@@ -319,9 +329,11 @@ class _CanvasSideBarState extends State<CanvasSideBar> {
                       child: TextButton(
                         child: const Text('Export'),
                         onPressed: () async {
-                          Uint8List? pngBytes = await getBytes();
-                          if (pngBytes != null) await uploadImage(pngBytes,widget.parentPath ?? '');
-
+                          print('Parent Path: ${widget.parentPath}');
+                          Uint8List? pngBytes = await getBytesWithBackground();
+                          if (pngBytes != null) {
+                            await uploadImage(pngBytes, widget.parentPath ?? '', filenameController.text);
+                          }
                         },
                       ),
                     ),
@@ -354,6 +366,40 @@ class _CanvasSideBarState extends State<CanvasSideBar> {
         },
       ),
     );
+  }
+
+
+  Future<Uint8List?> getBytesWithBackground() async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+
+    // Desenează fundalul dacă există
+    if (widget.backgroundImage.value != null) {
+      final paint = Paint();
+      canvas.drawImage(widget.backgroundImage.value!, Offset.zero, paint);
+    }
+
+    // Desenează conținutul canvas-ului
+    RenderRepaintBoundary boundary = widget.canvasGlobalKey.currentContext
+        ?.findRenderObject() as RenderRepaintBoundary;
+    ui.Image canvasImage = await boundary.toImage();
+    ByteData? canvasBytes = await canvasImage.toByteData(format: ui.ImageByteFormat.png);
+    if (canvasBytes != null) {
+      final paint = Paint();
+      final image = await decodeImageFromList(canvasBytes.buffer.asUint8List());
+      canvas.drawImage(image, Offset.zero, paint);
+    }
+
+    // Finalizează imaginea
+    final picture = recorder.endRecording();
+    final fullImage = await picture.toImage(
+      boundary.size.width.toInt(),
+      boundary.size.height.toInt(),
+    );
+
+    // Convertește imaginea într-un Uint8List
+    ByteData? byteData = await fullImage.toByteData(format: ui.ImageByteFormat.png);
+    return byteData?.buffer.asUint8List();
   }
 
   void saveFile(Uint8List bytes, String extension) async {
