@@ -181,7 +181,7 @@ class _TreeNodeWidgetState extends State<_TreeNodeWidget> {
 
                   child: Container(
                     key: parentKey,
-                    color: Colors.red.withOpacity(0.3),
+                    //color: Colors.red.withOpacity(0.3),
                     padding: const EdgeInsets.all(8.0),
                     child: Row(
                       children: [
