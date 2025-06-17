@@ -5,21 +5,29 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../../main.dart';
 
-Future<void> uploadImage(Uint8List imageBytes,String parentPath,String name ) async {
-  // Creează cererea HTTP pentru upload
+Future<void> uploadImage(Uint8List imageBytes,String parentPath,String name, String usernames, String description) async {
+
   var request = http.MultipartRequest(
     'POST',
-    Uri.parse('http://localhost:8080/upload'), // backend URL
+    Uri.parse('http://localhost:8080/upload'),
   );
-
-  // Adaugă fișierul direct din bytes
+  //numele la fisier e si path :P
   request.files.add(http.MultipartFile.fromBytes(
     'image',
     imageBytes,
     filename: '$name.png',
   ));
 
+
   request.fields['parentPath'] = parentPath;
+
+  request.fields['imageName'] = name;
+
+  List<String> usernamesList = usernames.split(',');
+
+  request.fields['usernames'] = usernamesList.join(',');
+
+  request.fields['description'] = description;
 
   print("in upload image $parentPath");
 

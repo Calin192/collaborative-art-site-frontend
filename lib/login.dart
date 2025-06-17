@@ -40,11 +40,12 @@ class _AuthScreenState extends State<AuthScreen> {
         'password': passwordController.text,
       }),
     );
+
     if (response.statusCode == 200) {
       // Navigate to HomeScreen on successful login
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        MaterialPageRoute(builder: (context) => HomeScreen(username: usernameController.text)),
       );
     } else if (response.statusCode == 401) {
       // Display error message for invalid credentials

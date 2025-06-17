@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_drawing_board/subgallery/findImagePathInTree.dart';
+import 'package:flutter_drawing_board/subgallery/requestAccess.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_drawing_board/subgallery/saveBytes.dart';
 import 'package:path_provider/path_provider.dart';
@@ -26,8 +27,8 @@ class TreeNode {
 
 class SubtreeGalleryPage extends StatefulWidget {
   final String rootPath;
-
-  const SubtreeGalleryPage({super.key, required this.rootPath});
+  final String username;
+  const SubtreeGalleryPage({super.key, required this.rootPath, required this.username});
 
   @override
   State<SubtreeGalleryPage> createState() => _SubtreeGalleryPageState();
@@ -60,8 +61,11 @@ class _SubtreeGalleryPageState extends State<SubtreeGalleryPage> {
         final Map<String, String> imagesStringMap = imagesJson.map((key, value) => MapEntry(key, value.toString()));
 
         this.treeJson = json.decode(treeResponse.body);
+
+        // Adaugă un print pentru a verifica structura JSON-ului
+        print('Tree JSON: ${json.encode(treeJson)}');
+
         final TreeNode tree = TreeNode.fromJson(treeJson);
-        //print("Tree loaded: ${treeJson}");
         setState(() {
           images = imagesStringMap;
           rootTree = tree;
@@ -88,7 +92,7 @@ class _SubtreeGalleryPageState extends State<SubtreeGalleryPage> {
           ? const Center(child: Text('No tree found.'))
           : SingleChildScrollView(
         padding: const EdgeInsets.all(10),
-        child: _TreeNodeWidget(node: rootTree!, images: images, treeJson: this.treeJson),
+        child: _TreeNodeWidget(node: rootTree!, images: images, treeJson: this.treeJson, username: widget.username),
       ),
     );
   }
@@ -98,8 +102,8 @@ class _TreeNodeWidget extends StatefulWidget {
   final TreeNode node;
   final Map<String, String> images;
   final Map<String, dynamic> treeJson;
-
-  const _TreeNodeWidget({Key? key, required this.node, required this.images, required this.treeJson}) : super(key: key);
+  final String username;
+  const _TreeNodeWidget({Key? key, required this.node, required this.images, required this.treeJson,required this.username}) : super(key: key);
 
   @override
   State<_TreeNodeWidget> createState() => _TreeNodeWidgetState();
@@ -116,6 +120,16 @@ class _TreeNodeWidgetState extends State<_TreeNodeWidget> {
     childrenKeys.addAll(List.generate(widget.node.children.length, (_) => GlobalKey()));
   }
 
+  Map<String, dynamic>? _findRawNodeByPath(Map<String, dynamic> node, String targetPath) {
+    if (node['path'] == targetPath) return node;
+    if (node['children'] == null) return null;
+
+    for (var child in node['children']) {
+      final result = _findRawNodeByPath(child, targetPath);
+      if (result != null) return result;
+    }
+    return null;
+  }
 
 
   @override
@@ -130,9 +144,30 @@ class _TreeNodeWidgetState extends State<_TreeNodeWidget> {
       }
     }
 
+    String imageName = widget.node.path.split('/').last;
+
+    // Get participants for this node
+    List<String> usernamesList = [];
+    try {
+      final nodeRawJson = _findRawNodeByPath(widget.treeJson, widget.node.path);
+      if (nodeRawJson != null &&
+          nodeRawJson['drawing'] != null &&
+          nodeRawJson['drawing']['username'] != null) {
+        usernamesList = List<String>.from(nodeRawJson['drawing']['username']);
+      }
+    } catch (_) {}
+
+    String usernames = usernamesList.isNotEmpty ? usernamesList.join(', ') : 'unknown';
+
     final childrenWidgets = <Widget>[];
     for (int i = 0; i < widget.node.children.length; i++) {
-      childrenWidgets.add(_TreeNodeWidget(node: widget.node.children[i], images: widget.images, key: childrenKeys[i], treeJson: widget.treeJson));
+      childrenWidgets.add(_TreeNodeWidget(
+        node: widget.node.children[i],
+        images: widget.images,
+        key: childrenKeys[i],
+        treeJson: widget.treeJson,
+        username: widget.username,
+      ));
     }
 
     return Container(
@@ -141,7 +176,6 @@ class _TreeNodeWidgetState extends State<_TreeNodeWidget> {
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            // 🔥 Linia trebuie să fie dedesubt și să ignore gesturile
             Positioned.fill(
               child: IgnorePointer(
                 child: CustomPaint(
@@ -152,48 +186,100 @@ class _TreeNodeWidgetState extends State<_TreeNodeWidget> {
                 ),
               ),
             ),
-
-            // 🔥 Widgetul tău interactiv cu GestureDetector
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                GestureDetector(
-                  onTap: () async {
-                    String imageName = widget.node.path.split('/').last;
-                    String? resolvedPath = await findImagePathInTree(widget.treeJson, imageName);
-                    print("Resolved path:---------------------- $resolvedPath");
-                    if (resolvedPath != null && bytes != null) {
-                      // Salvează temporar imaginea în directorul temporar
-                      final tempFilePath = await saveImageTemporarily(bytes, imageName);
+                Stack(
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        String? resolvedPath = await findImagePathInTree(widget.treeJson, imageName);
+                        if (resolvedPath != null && bytes != null) {
+                          List<String> allowedUsers = [];
+                          try {
+                            final rootNode = _findRawNodeByPath(widget.treeJson, widget.treeJson['path']);
+                            if (rootNode != null &&
+                                rootNode['drawing'] != null &&
+                                rootNode['drawing']['username'] != null) {
+                              allowedUsers = List<String>.from(rootNode['drawing']['username']);
+                            }
+                          } catch (_) {}
 
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => DrawingPage(tempPath: tempFilePath, parentPath: resolvedPath), // trimiți calea temporară
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Could not resolve image path or image data is null')),
-                      );
-                    }
-                  },
+                          if (!allowedUsers.contains(widget.username)) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('You are not allowed to access this image.')),
+                            );
+                            return;
+                          }
 
-                  child: Container(
-                    key: parentKey,
-                    //color: Colors.red.withOpacity(0.3),
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      children: [
-                        if (bytes != null)
-                          Image.memory(bytes, width: 80, height: 80, fit: BoxFit.contain),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(widget.node.path, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          final tempFilePath = await saveImageTemporarily(bytes, imageName);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DrawingPage(
+                                tempPath: tempFilePath,
+                                parentPath: resolvedPath,
+                                username: widget.username,
+                              ),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Could not resolve image path or image data is null')),
+                          );
+                        }
+                      },
+                      child: Container(
+                        key: parentKey,
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          children: [
+                            if (bytes != null)
+                              Image.memory(bytes, width: 80, height: 80, fit: BoxFit.contain),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '$imageName by $usernames',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+
+                    // Button to request access if the node is the root node
+                    if (widget.node.path == widget.treeJson['path'])
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            try {
+                              print('Sending access request for ${widget.node.path} by ${widget.username}');
+                              await sendAccessRequestMultipart(
+                                drawingPath: widget.node.path,
+                                username: widget.username,
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Request send')),
+                              );
+                            } catch (e) {
+                              if (e.toString().contains('already_participant')) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('You are already a participant.')),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Error sending request')),
+                                );
+                              }
+                            }
+                          },
+                          child: const Text("Request Access"),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 if (childrenWidgets.isNotEmpty)

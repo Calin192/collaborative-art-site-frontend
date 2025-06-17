@@ -36,6 +36,7 @@ class CanvasSideBar extends StatefulWidget {
   final UndoRedoStack undoRedoStack;
   final ValueNotifier<bool> showGrid;
   final String? parentPath;
+  final String username;
 
   const CanvasSideBar({
     Key? key,
@@ -51,7 +52,8 @@ class CanvasSideBar extends StatefulWidget {
     required this.backgroundImage,
     required this.undoRedoStack,
     required this.showGrid,
-    required this.parentPath
+    required this.parentPath,
+    required this.username
   }) : super(key: key);
 
   @override
@@ -332,7 +334,7 @@ class _CanvasSideBarState extends State<CanvasSideBar> {
                           print('Parent Path: ${widget.parentPath}');
                           Uint8List? pngBytes = await getBytesWithBackground();
                           if (pngBytes != null) {
-                            await uploadImage(pngBytes, widget.parentPath ?? '', filenameController.text);
+                            await uploadImage(pngBytes, widget.parentPath ?? '', filenameController.text, widget.username,'');
                           }
                         },
                       ),

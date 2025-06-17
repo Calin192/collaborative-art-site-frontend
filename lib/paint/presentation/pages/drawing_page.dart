@@ -22,8 +22,9 @@ import '../widgets/hot_key_listener.dart';
 class DrawingPage extends StatefulWidget {
   final String? parentPath;
   final String? tempPath;
+  final String username;
 
-  const DrawingPage({super.key, required this.parentPath, required this.tempPath});
+  const DrawingPage({super.key, required this.parentPath, required this.tempPath, required this.username});
 
   @override
   State<DrawingPage> createState() => _DrawingPageState();
@@ -66,10 +67,6 @@ class _DrawingPageState extends State<DrawingPage>
       currentStrokeNotifier: currentStroke,
       strokesNotifier: allStrokes,
     );
-
-
-
-    // Încarcă imaginea de fundal dacă e specificat un parentPath
 
     if (tempPath != null && tempPath!.isNotEmpty) {
       _loadBackgroundFromParentPath(tempPath!);
@@ -157,7 +154,8 @@ class _DrawingPageState extends State<DrawingPage>
                   backgroundImage: backgroundImage,
                   undoRedoStack: undoRedoStack,
                   showGrid: showGrid,
-                  parentPath: parentPath,  // Transmite parentPath către CanvasSideBar
+                  parentPath: parentPath,
+                  username: widget.username,
                 ),
               ),
             ),
