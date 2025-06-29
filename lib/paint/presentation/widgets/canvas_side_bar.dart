@@ -333,7 +333,7 @@ class _CanvasSideBarState extends State<CanvasSideBar> {
                         onPressed: () async {
                           print('Parent Path: ${widget.parentPath}');
                           Uint8List? pngBytes = await getBytesWithBackground();
-                          if (pngBytes != null) {
+                          if (pngBytes != null && filenameController.text.isNotEmpty) {
                             await uploadImage(pngBytes, widget.parentPath ?? '', filenameController.text, widget.username,'');
                           }
                         },

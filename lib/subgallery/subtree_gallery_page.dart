@@ -92,7 +92,13 @@ class _SubtreeGalleryPageState extends State<SubtreeGalleryPage> {
           ? const Center(child: Text('No tree found.'))
           : SingleChildScrollView(
         padding: const EdgeInsets.all(10),
-        child: _TreeNodeWidget(node: rootTree!, images: images, treeJson: this.treeJson, username: widget.username),
+        child: _TreeNodeWidget(
+          node: rootTree!,
+          images: images,
+          treeJson: this.treeJson,
+          username: widget.username,
+          onRefresh: _loadImagesAndTree,
+        ),
       ),
     );
   }
@@ -103,7 +109,16 @@ class _TreeNodeWidget extends StatefulWidget {
   final Map<String, String> images;
   final Map<String, dynamic> treeJson;
   final String username;
-  const _TreeNodeWidget({Key? key, required this.node, required this.images, required this.treeJson,required this.username}) : super(key: key);
+  final Future<void> Function()? onRefresh; // Add callback for refresh
+
+  const _TreeNodeWidget({
+    Key? key,
+    required this.node,
+    required this.images,
+    required this.treeJson,
+    required this.username,
+    this.onRefresh, // Initialize callback
+  }) : super(key: key);
 
   @override
   State<_TreeNodeWidget> createState() => _TreeNodeWidgetState();
@@ -115,10 +130,14 @@ class _TreeNodeWidgetState extends State<_TreeNodeWidget> {
 
 
   @override
-  void initState() {
-    super.initState();
-    childrenKeys.addAll(List.generate(widget.node.children.length, (_) => GlobalKey()));
+  void didUpdateWidget(covariant _TreeNodeWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.node.children.length != childrenKeys.length) {
+      childrenKeys.clear();
+      childrenKeys.addAll(List.generate(widget.node.children.length, (_) => GlobalKey()));
+    }
   }
+
 
   Map<String, dynamic>? _findRawNodeByPath(Map<String, dynamic> node, String targetPath) {
     if (node['path'] == targetPath) return node;
@@ -161,14 +180,17 @@ class _TreeNodeWidgetState extends State<_TreeNodeWidget> {
 
     final childrenWidgets = <Widget>[];
     for (int i = 0; i < widget.node.children.length; i++) {
+      final key = (i < childrenKeys.length) ? childrenKeys[i] : GlobalKey();
+
       childrenWidgets.add(_TreeNodeWidget(
         node: widget.node.children[i],
         images: widget.images,
-        key: childrenKeys[i],
+        key: key,
         treeJson: widget.treeJson,
         username: widget.username,
       ));
     }
+
 
     return Container(
       margin: const EdgeInsets.only(left: 16.0, top: 8.0),
@@ -248,35 +270,57 @@ class _TreeNodeWidgetState extends State<_TreeNodeWidget> {
                       ),
                     ),
 
-                    // Button to request access if the node is the root node
+                    // Buttons for request access and refresh
                     if (widget.node.path == widget.treeJson['path'])
                       Positioned(
                         top: 4,
                         right: 4,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            try {
-                              print('Sending access request for ${widget.node.path} by ${widget.username}');
-                              await sendAccessRequestMultipart(
-                                drawingPath: widget.node.path,
-                                username: widget.username,
-                              );
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Request send')),
-                              );
-                            } catch (e) {
-                              if (e.toString().contains('already_participant')) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('You are already a participant.')),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Error sending request')),
-                                );
-                              }
-                            }
-                          },
-                          child: const Text("Request Access"),
+                        child: Row(
+                          children: [
+                            ElevatedButton(
+                              onPressed: () async {
+                                try {
+                                  print('Sending access request for ${widget.node.path} by ${widget.username}');
+                                  await sendAccessRequestMultipart(
+                                    drawingPath: widget.node.path,
+                                    username: widget.username,
+                                  );
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Request sent')),
+                                  );
+                                } catch (e) {
+                                  if (e.toString().contains('already_participant')) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('You are already a participant.')),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Error sending request')),
+                                    );
+                                  }
+                                }
+                              },
+                              child: const Text("Request Access"),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: () async {
+                                if (widget.onRefresh != null) {
+                                  try {
+                                    await widget.onRefresh!(); // Call the refresh method
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Images refreshed')),
+                                    );
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Error refreshing images')),
+                                    );
+                                  }
+                                }
+                              },
+                              child: const Text("Refresh"),
+                            ),
+                          ],
                         ),
                       ),
                   ],
@@ -315,7 +359,7 @@ class _LinesPainter extends CustomPainter {
     if (parentBox == null) return;
 
     final parentSize = parentBox.size;
-    // Folosim poziția din stânga sus (nu centru)
+
     final parentTopLeftGlobal = parentBox.localToGlobal(Offset.zero);
 
     final parentOffsetInCanvas = parentBox.globalToLocal(parentTopLeftGlobal);
@@ -334,18 +378,18 @@ class _LinesPainter extends CustomPainter {
 
     if (childrenPositionsInCanvas.isEmpty) return;
 
-    // Linie verticală de la partea stângă jos a părintelui până la partea stângă sus a celui mai jos copil
-    double x = parentOffsetInCanvas.dx; // linia verticală la marginea stângă a părintelui
+
+    double x = parentOffsetInCanvas.dx;
     double topY = parentOffsetInCanvas.dy + parentSize.height;
     double bottomY = childrenPositionsInCanvas.map((e) => e.dy).reduce((a, b) => a < b ? a : b);
 
-    // Linie verticală principală
+
     canvas.drawLine(Offset(x, topY), Offset(x, bottomY), paint);
 
-    // Linii orizontale către fiecare copil
+
     for (var childPos in childrenPositionsInCanvas) {
       double childX = childPos.dx;
-      double childY = childPos.dy + 20; // un pic mai jos pentru aliniere mai naturală
+      double childY = childPos.dy + 20;
       canvas.drawLine(Offset(x, childY), Offset(childX, childY), paint);
     }
   }

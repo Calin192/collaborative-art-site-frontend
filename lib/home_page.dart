@@ -86,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () async {
-              // TODO: API call to accept request
+
               try {
                 await respondToAccessRequestMultipart(
                 drawingName: request.drawingPath,

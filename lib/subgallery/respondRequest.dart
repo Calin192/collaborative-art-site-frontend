@@ -12,7 +12,7 @@ Future<void> respondToAccessRequestMultipart({
 
   request.fields['drawingName'] = drawingName;
   request.fields['fromUser'] = fromUser;
-  request.fields['accept'] = accept.toString(); // trimitem boolean ca string
+  request.fields['accept'] = accept.toString(); // trimit boolean ca string
 
   var response = await request.send();
 
