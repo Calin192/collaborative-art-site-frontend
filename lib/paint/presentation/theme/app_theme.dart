@@ -14,7 +14,7 @@ ThemeData lightTheme = ThemeData(
   ),
   scaffoldBackgroundColor: lightBG,
   appBarTheme: AppBarTheme(
-    backgroundColor: lightPrimary.withOpacity(0.7),
+    backgroundColor: lightPrimary.withValues(alpha: 0.7),
     elevation: 0.0,
     titleTextStyle: const TextStyle(
       color: Colors.white,
@@ -24,7 +24,7 @@ ThemeData lightTheme = ThemeData(
     iconTheme: const IconThemeData(color: Colors.white),
   ),
   bottomNavigationBarTheme: BottomNavigationBarThemeData(
-    backgroundColor: lightPrimary.withOpacity(0.7),
+    backgroundColor: lightPrimary.withValues(alpha: 0.7),
   ),
   inputDecorationTheme: const InputDecorationTheme(
     border: InputBorder.none,

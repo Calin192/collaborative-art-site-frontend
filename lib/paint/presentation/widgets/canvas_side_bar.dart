@@ -8,10 +8,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Image;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_drawing_board/main.dart';
 import 'package:flutter_drawing_board/paint/presentation/widgets/export_image.dart';
 
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:url_launcher/url_launcher.dart';
@@ -115,7 +113,7 @@ class _CanvasSideBarState extends State<CanvasSideBar> {
                   runSpacing: 5,
                   children: [
                     _IconBox(
-                      iconData: FontAwesomeIcons.pencil,
+                      iconData: Icons.edit,
                       selected: widget.drawingTool.value == DrawingTool.pencil,
                       onTap: () =>
                       widget.drawingTool.value = DrawingTool.pencil,
@@ -146,28 +144,28 @@ class _CanvasSideBarState extends State<CanvasSideBar> {
                       tooltip: 'Polygon',
                     ),
                     _IconBox(
-                      iconData: FontAwesomeIcons.eraser,
+                      iconData: Icons.cleaning_services,
                       selected: widget.drawingTool.value == DrawingTool.eraser,
                       onTap: () =>
                       widget.drawingTool.value = DrawingTool.eraser,
                       tooltip: 'Eraser',
                     ),
                     _IconBox(
-                      iconData: FontAwesomeIcons.square,
+                      iconData: Icons.crop_square,
                       selected: widget.drawingTool.value == DrawingTool.square,
                       onTap: () =>
                       widget.drawingTool.value = DrawingTool.square,
                       tooltip: 'Square',
                     ),
                     _IconBox(
-                      iconData: FontAwesomeIcons.circle,
+                      iconData: Icons.circle_outlined,
                       selected: widget.drawingTool.value == DrawingTool.circle,
                       onTap: () =>
                       widget.drawingTool.value = DrawingTool.circle,
                       tooltip: 'Circle',
                     ),
                     _IconBox(
-                      iconData: FontAwesomeIcons.ruler,
+                      iconData: Icons.straighten,
                       selected: widget.showGrid.value,
                       onTap: () =>
                       widget.showGrid.value = !widget.showGrid.value,

@@ -50,17 +50,17 @@ class _SubtreeGalleryPageState extends State<SubtreeGalleryPage> {
 
   Future<void> _loadImagesAndTree() async {
     final String imagesUrl = 'http://localhost:8080/getImagesFromRoot?rootPath=${widget.rootPath}';
-    this.treeUrl = 'http://localhost:8080/getTreeStructure?rootPath=${widget.rootPath}';
+    treeUrl = 'http://localhost:8080/getTreeStructure?rootPath=${widget.rootPath}';
 
     try {
       final imagesResponse = await http.get(Uri.parse(imagesUrl));
-      final treeResponse = await http.get(Uri.parse(this.treeUrl));
+      final treeResponse = await http.get(Uri.parse(treeUrl));
 
       if (imagesResponse.statusCode == 200 && treeResponse.statusCode == 200) {
         final Map<String, dynamic> imagesJson = json.decode(imagesResponse.body);
         final Map<String, String> imagesStringMap = imagesJson.map((key, value) => MapEntry(key, value.toString()));
 
-        this.treeJson = json.decode(treeResponse.body);
+        treeJson = json.decode(treeResponse.body);
 
         // Adaugă un print pentru a verifica structura JSON-ului
         print('Tree JSON: ${json.encode(treeJson)}');
@@ -95,7 +95,7 @@ class _SubtreeGalleryPageState extends State<SubtreeGalleryPage> {
         child: _TreeNodeWidget(
           node: rootTree!,
           images: images,
-          treeJson: this.treeJson,
+          treeJson: treeJson,
           username: widget.username,
           onRefresh: _loadImagesAndTree,
         ),

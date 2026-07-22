@@ -116,7 +116,7 @@ class NormalStroke extends Stroke {
   Map<String, dynamic> toJson() {
     return {
       'points': points.map((point) => [point.dx, point.dy]).toList(),
-      'color': color.value,
+      'color': color.toARGB32(),
       'size': size,
       'opacity': opacity,
       'strokeType': strokeType.toString(),
@@ -151,7 +151,7 @@ class EraserStroke extends Stroke {
   Map<String, dynamic> toJson() {
     return {
       'points': points.map((point) => [point.dx, point.dy]).toList(),
-      'color': color.value,
+      'color': color.toARGB32(),
       'size': size,
       'opacity': opacity,
       'strokeType': strokeType.toString(),
@@ -186,7 +186,7 @@ class LineStroke extends Stroke {
   Map<String, dynamic> toJson() {
     return {
       'points': points.map((point) => [point.dx, point.dy]).toList(),
-      'color': color.value,
+      'color': color.toARGB32(),
       'size': size,
       'opacity': opacity,
       'strokeType': strokeType.toString(),
@@ -231,7 +231,7 @@ class PolygonStroke extends Stroke {
     return {
       'points': points.map((point) => [point.dx, point.dy]).toList(),
       'sides': sides,
-      'color': color.value,
+      'color': color.toARGB32(),
       'size': size,
       'opacity': opacity,
       'strokeType': strokeType.toString(),
@@ -271,7 +271,7 @@ class CircleStroke extends Stroke {
   Map<String, dynamic> toJson() {
     return {
       'points': points.map((point) => [point.dx, point.dy]).toList(),
-      'color': color.value,
+      'color': color.toARGB32(),
       'size': size,
       'opacity': opacity,
       'strokeType': strokeType.toString(),
@@ -311,7 +311,7 @@ class SquareStroke extends Stroke {
   Map<String, dynamic> toJson() {
     return {
       'points': points.map((point) => [point.dx, point.dy]).toList(),
-      'color': color.value,
+      'color': color.toARGB32(),
       'size': size,
       'opacity': opacity,
       'strokeType': strokeType.toString(),

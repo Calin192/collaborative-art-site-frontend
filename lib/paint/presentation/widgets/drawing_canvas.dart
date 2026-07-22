@@ -226,7 +226,7 @@ class _DrawingCanvasPainter extends CustomPainter {
 
       final strokeSize = max(stroke.size, 1.0);
       final paint = Paint()
-        ..color = stroke.color.withOpacity(stroke.opacity)
+        ..color = stroke.color.withValues(alpha: stroke.opacity)
         ..strokeWidth = strokeSize
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round

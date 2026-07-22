@@ -81,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Request Access'),
+        title: const Text('Request Access'),
         content: Text('User "${request.username}" requests access to drawing: "${request.drawingPath}". Accept?'),
         actions: [
           TextButton(

@@ -24,10 +24,10 @@ Future<String?> findImagePathInTree(Map<String, dynamic> treeJson, String imageN
     var nodePath = "";
     String? searchTree(TreeNode node, String targetName) {
       var nodeName = node.path.split('/').last;
-      nodePath = "$nodePath" + "/" + "$nodeName";
+      nodePath = nodePath; "/" + nodeName;
       //print("$nodePath");
       if (nodeName == targetName) {
-        print('Found image: $targetName at path: ${nodePath}');
+        print('Found image: $targetName at path: $nodePath');
         return nodePath;
       }
       for (var child in node.children) {
