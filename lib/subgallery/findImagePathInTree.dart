@@ -21,21 +21,22 @@ class TreeNode {
 Future<String?> findImagePathInTree(Map<String, dynamic> treeJson, String imageName) async {
   try {
     final TreeNode root = TreeNode.fromJson(treeJson);
-    var nodePath = "";
+
     String? searchTree(TreeNode node, String targetName) {
-      var nodeName = node.path.split('/').last;
-      nodePath = nodePath; "/" + nodeName;
-      //print("$nodePath");
+      final nodeName = node.path.split('/').last;
+
       if (nodeName == targetName) {
-        print('Found image: $targetName at path: $nodePath');
-        return nodePath;
+        print('Found image: $targetName at path: ${node.path}');
+        return node.path;
       }
-      for (var child in node.children) {
+
+      for (final child in node.children) {
         final result = searchTree(child, targetName);
         if (result != null) {
           return result;
         }
       }
+
       return null;
     }
 

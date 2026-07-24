@@ -5,7 +5,6 @@ import 'package:flutter_drawing_board/subgallery/findImagePathInTree.dart';
 import 'package:flutter_drawing_board/subgallery/requestAccess.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_drawing_board/subgallery/saveBytes.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../paint/presentation/pages/drawing_page.dart';
 

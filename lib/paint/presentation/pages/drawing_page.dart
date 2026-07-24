@@ -2,7 +2,9 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:window_manager/window_manager.dart';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../domain/models/drawing_canvas_options.dart';
 import '../../domain/models/drawing_tool.dart';
 import '../../domain/models/stroke.dart';
@@ -56,10 +58,16 @@ class _DrawingPageState extends State<DrawingPage>
     parentPath = widget.parentPath;
     tempPath = widget.tempPath;
 
+    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+      windowManager.setResizable(false);
+    }
+
     animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+
+    
 
     undoRedoStack = UndoRedoStack(
       currentStrokeNotifier: currentStroke,
@@ -69,6 +77,15 @@ class _DrawingPageState extends State<DrawingPage>
     if (tempPath != null && tempPath!.isNotEmpty) {
       _loadBackgroundFromParentPath(tempPath!);
     }
+  }
+
+  @override
+  void dispose() {
+    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+      windowManager.setResizable(true);
+    }
+    animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadBackgroundFromParentPath(String path) async {

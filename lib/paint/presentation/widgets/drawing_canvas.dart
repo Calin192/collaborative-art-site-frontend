@@ -3,13 +3,31 @@ import 'dart:ui' as ui;
 
 
 import 'package:flutter/material.dart';
-import 'package:flutter_drawing_board/paint/extensions/extensions.dart';
 
 import '../../domain/models/drawing_canvas_options.dart';
 import '../../domain/models/drawing_tool.dart';
 import '../../domain/models/stroke.dart';
+import '../../extensions/drawing_tool_extensions.dart';
 import '../notifiers/current_stroke_value_notifier.dart';
 
+void _paintBackgroundImage(Canvas canvas, Size size, ui.Image image, {BoxFit fit = BoxFit.contain}) {
+  final Size imageSize = Size(image.width.toDouble(), image.height.toDouble());
+
+  final FittedSizes fittedSizes = applyBoxFit(fit, imageSize, size);
+  final Size sourceSize = fittedSizes.source;
+  final Size destinationSize = fittedSizes.destination;
+
+  final Rect sourceRect = Alignment.center.inscribe(
+    sourceSize,
+    Offset.zero & imageSize,
+  );
+  final Rect destinationRect = Alignment.center.inscribe(
+    destinationSize,
+    Offset.zero & size,
+  );
+
+  canvas.drawImageRect(image, sourceRect, destinationRect, Paint());
+}
 
 class DrawingCanvas extends StatefulWidget {
   final ValueNotifier<List<Stroke>> strokesListenable;
@@ -44,12 +62,7 @@ class _BackgroundPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final image = backgroundImageListenable.value;
     if (image != null) {
-      canvas.drawImageRect(
-        image,
-        Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Paint(),
-      );
+      _paintBackgroundImage(canvas, size, image);
     }
   }
 
@@ -77,11 +90,8 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
     final box = context.findRenderObject() as RenderBox?;
     if (box == null) return;
     final offset = box.globalToLocal(event.position);
-    // convert the offset to standard size so that it
-    // can be scaled back to the device size
-    final standardOffset = offset.scaleToStandard(box.size);
     _currentStroke.startStroke(
-      standardOffset,
+      offset,
       color: strokeColor,
       size: size,
       opacity: opacity,
@@ -96,10 +106,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
     final box = context.findRenderObject() as RenderBox?;
     if (box == null) return;
     final offset = box.globalToLocal(event.position);
-    // convert the offset to standard size so that it
-    // can be scaled back to the device size
-    final standardOffset = offset.scaleToStandard(box.size);
-    _currentStroke.addPoint(standardOffset);
+    _currentStroke.addPoint(offset);
     widget.onDrawingStrokeChanged?.call(_currentStroke.value);
   }
 
@@ -197,22 +204,11 @@ class _DrawingCanvasPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (backgroundImageListenable != null) {
-      final backgroundImage = backgroundImageListenable!.value;
-
-      if (backgroundImage != null) {
-        canvas.drawImageRect(
-          backgroundImage,
-          Rect.fromLTWH(
-            0,
-            0,
-            backgroundImage.width.toDouble(),
-            backgroundImage.height.toDouble(),
-          ),
-          Rect.fromLTWH(0, 0, size.width, size.height),
-          Paint(),
-        );
-      }
+    final backgroundImage = backgroundImageListenable!.value;
+    if (backgroundImage != null) {
+      _paintBackgroundImage(canvas, size, backgroundImage);
     }
+  }
 
     final strokes = List<Stroke>.from(strokesListenable?.value ?? []);
 
@@ -238,8 +234,7 @@ class _DrawingCanvasPainter extends CustomPainter {
 
         // If the path only has one line, draw a dot.
         if (stroke.points.length == 1) {
-          // scale the point to the standard size
-          final center = stroke.points.first.scaleFromStandard(size);
+          final center = stroke.points.first;
           final radius = strokeSize / 2;
           canvas.drawCircle(center, radius, paint..style = PaintingStyle.fill);
 
@@ -259,17 +254,15 @@ class _DrawingCanvasPainter extends CustomPainter {
 
       // Line stroke.
       if (stroke is LineStroke) {
-        // scale the points to the standard size
-        final firstPoint = points.first.scaleFromStandard(size);
-        final lastPoint = points.last.scaleFromStandard(size);
+        final firstPoint = points.first;
+        final lastPoint = points.last;
         canvas.drawLine(firstPoint, lastPoint, paint);
         continue;
       }
 
       if (stroke is CircleStroke) {
-        // scale the points to the standard size
-        final firstPoint = points.first.scaleFromStandard(size);
-        final lastPoint = points.last.scaleFromStandard(size);
+        final firstPoint = points.first;
+        final lastPoint = points.last;
         final rect = Rect.fromPoints(firstPoint, lastPoint);
 
         if (stroke.filled) {
@@ -281,9 +274,8 @@ class _DrawingCanvasPainter extends CustomPainter {
       }
 
       if (stroke is SquareStroke) {
-        // scale the points to the standard size
-        final firstPoint = points.first.scaleFromStandard(size);
-        final lastPoint = points.last.scaleFromStandard(size);
+        final firstPoint = points.first;
+        final lastPoint = points.last;
         final rect = Rect.fromPoints(firstPoint, lastPoint);
 
         if (stroke.filled) {
@@ -295,9 +287,8 @@ class _DrawingCanvasPainter extends CustomPainter {
       }
 
       if (stroke is PolygonStroke) {
-        // scale the points to the standard size
-        final firstPoint = points.first.scaleFromStandard(size);
-        final lastPoint = points.last.scaleFromStandard(size);
+        final firstPoint = points.first;
+        final lastPoint = points.last;
         final centerPoint = (firstPoint / 2) + (lastPoint / 2);
         final radius = (firstPoint - lastPoint).distance / 2;
         final sides = stroke.sides;
@@ -387,13 +378,11 @@ class _DrawingCanvasPainter extends CustomPainter {
     final path = Path();
     final points = stroke.points;
     if (points.isNotEmpty) {
-      // scale the point to the standard size
-      final firstPoint = points.first.scaleFromStandard(size);
+      final firstPoint = points.first;
       path.moveTo(firstPoint.dx, firstPoint.dy);
       for (int i = 1; i < points.length - 1; ++i) {
-        // scale the points to the standard size
-        final p0 = points[i].scaleFromStandard(size);
-        final p1 = points[i + 1].scaleFromStandard(size);
+        final p0 = points[i];
+        final p1 = points[i + 1];
 
         // use quadratic bezier to draw smooth curves through the points
         path.quadraticBezierTo(

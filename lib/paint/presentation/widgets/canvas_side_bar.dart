@@ -309,7 +309,7 @@ class _CanvasSideBarState extends State<CanvasSideBar> {
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  'Export',
+                  'Save',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const Divider(),
@@ -327,7 +327,7 @@ class _CanvasSideBarState extends State<CanvasSideBar> {
                     SizedBox(
                       width: 140,
                       child: TextButton(
-                        child: const Text('Export'),
+                        child: const Text('Save'),
                         onPressed: () async {
                           print('Parent Path: ${widget.parentPath}');
                           Uint8List? pngBytes = await getBytesWithBackground();
